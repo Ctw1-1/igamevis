@@ -1,7 +1,3 @@
-// ============================================================================
-// ConvertToVertexFilter  — 将任意点集/网格转换为顶点单元（IG_VERTEX）网格
-// 骨架由 scripts/igame_new_filter.py 生成，算法部分手写。
-// ============================================================================
 #include "iGameConvertToVertexFilter.h"
 
 IGAME_NAMESPACE_BEGIN
