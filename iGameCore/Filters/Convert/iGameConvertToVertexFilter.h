@@ -1,8 +1,3 @@
-// ============================================================================
-// ConvertToVertexFilter  — 将任意点集/网格转换为顶点单元（IG_VERTEX）网格
-// 骨架由 scripts/igame_new_filter.py 生成，算法部分手写。
-// 数据流: point_set -> unstructured_mesh   输入端口 1 / 输出端口 1
-// ============================================================================
 #pragma once
 
 #include <iGameFilter.h>
@@ -31,8 +26,7 @@ protected:
 
 private:
     // 每个输入点复制为输出点，并生成一个引用该点的 IG_VERTEX 单元；
-    // 点属性原样拷贝为点属性；同名同值数组同时作为单元属性挂到顶点单元上
-    // （顶点单元 i 只含点 i，单元值即对应点的值）；原单元属性因数量无法对应而丢弃。
+    // 点属性原样拷贝为输出点属性，不复制到顶点单元；原单元属性因数量无法对应而丢弃。
     bool ExecutePointToVertex(PointSet::Pointer in, UnstructuredMesh::Pointer out);
 
     ConvertMethod m_ConvertMethod{IG_CONVERT_POINT_TO_VERTEX};

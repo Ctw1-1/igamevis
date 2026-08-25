@@ -48,11 +48,8 @@ bool ConvertToVertexFilter::ExecutePointToVertex(PointSet::Pointer in, Unstructu
         if ((i & 0x3FF) == 0) { UpdateProgress(static_cast<double>(i) / pointNum); }
     }
 
-    // 属性处理：
-    // 1) 点属性一一对应，原样拷贝为输出点属性（IG_POINT）；
-    // 2) 同名同值数组同时作为单元属性挂到顶点单元上（IG_CELL）——
-    //    输出中顶点单元 i 只引用点 i，单元值即对应点的值，属纯类型转换；
-    // 3) 原网格单元属性（IG_CELL）与输出顶点单元数量无法对应，丢弃。
+    // 属性处理：点属性一一对应，原样拷贝为输出点属性（IG_POINT）；
+    // 顶点单元不复制点属性；原网格单元属性（IG_CELL）与输出顶点单元数量无法对应，丢弃。
     for (int i = 0; i < static_cast<int>(inAttrs->GetNumberOfAttributes()); ++i) {
         auto& attr = inAttrs->GetAttribute(i);
         if (attr.attachmentType != IG_POINT) continue;
@@ -65,13 +62,6 @@ bool ConvertToVertexFilter::ExecutePointToVertex(PointSet::Pointer in, Unstructu
         pointArr->Reserve(attr.pointer->GetNumberOfElements());
         for (IGsize v = 0; v < valueCount; ++v) { pointArr->AddValue(attr.pointer->GetValue(v)); }
         outAttrs->AddAttribute(attr.type, IG_POINT, pointArr);
-
-        FloatArray::Pointer cellArr = FloatArray::New();
-        cellArr->SetName(attr.pointer->GetName());
-        cellArr->SetDimension(attr.pointer->GetDimension());
-        cellArr->Reserve(attr.pointer->GetNumberOfElements());
-        for (IGsize v = 0; v < valueCount; ++v) { cellArr->AddValue(attr.pointer->GetValue(v)); }
-        outAttrs->AddAttribute(attr.type, IG_CELL, cellArr);
     }
 
 

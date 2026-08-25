@@ -6,7 +6,7 @@
 #include <iostream>
 
 int main() {
-    const std::string fileName = "./Models/StreamTest.vtk";
+    const std::string fileName = "./Models/ClipTest_Plane_UnstructuredGrid.vtk";
     iGame::DataObject::Pointer obj = iGame::FileIO::ReadFile(fileName);
     if (obj == nullptr) {
         std::cout << "Read ERROR!\n";
