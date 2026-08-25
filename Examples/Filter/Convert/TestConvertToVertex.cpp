@@ -36,7 +36,11 @@ int main() {
 
     /* 创建场景，显示转换后的顶点单元网格 */
     auto scene = iGame::Scene::New();
+    //scene->AddModel(in);
     scene->AddModel(out);
+
+    auto model = scene->GetCurrentModel();
+    model->ViewCloudPicture(0, -1);
 
     iGame::RenderWindow::Pointer window = iGame::RenderWindow::New();
     window->SetSize(1920, 1080);
