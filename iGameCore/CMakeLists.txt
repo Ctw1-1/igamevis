@@ -236,6 +236,18 @@ endif ()
 include(Cmake/iGameCoreInstall.cmake)
 #--------------------------------------------------------------------
 
+if (NOT EMSCRIPTEN)
+    add_executable(testThresholdAndGenerateIds
+            ${CMAKE_SOURCE_DIR}/Examples/Filter/TestThresholdAndGenerateIds.cpp)
+    target_link_libraries(testThresholdAndGenerateIds PUBLIC ${MODULE_NAME})
+    if (WIN32)
+        set_property(TARGET testThresholdAndGenerateIds PROPERTY RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+        set_property(TARGET testThresholdAndGenerateIds PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR}/Debug)
+        set_property(TARGET testThresholdAndGenerateIds PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR}/Release)
+    endif ()
+endif ()
+#--------------------------------------------------------------------
+
 if (ENABLE_LIBTORCH_MODULE)
     set(RESOURCES_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Resources/AI)
     set(RESOURCES_OUTPUT_DIR ${CMAKE_BINARY_DIR}/Resources/AI)
