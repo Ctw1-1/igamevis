@@ -24,6 +24,7 @@
 #include "Convert/iGameConvertToPointDataFilter.h"
 #include "Convert/iGameConvertToSurfaceMeshFilter.h"
 #include "Convert/iGameConvertToVolumeMeshFilter.h"
+#include "MeshQuality/iGameMeshQualityFilter.h"
 
 #include "FeatureExtraction/iGameFeatureEdgesFilter.h"
 
@@ -1905,6 +1906,159 @@ void igQtMainWindow::initAllFilters() {
         }
     });
 
+
+    // 新增mesh_quality综合网格质量评估
+    QAction* meshQualityAction =ui->menu_filters->addAction(QStringLiteral("网格质量评估 (MeshQuality)"));
+    connect(meshQualityAction, &QAction::triggered,this, [this](bool checked) {
+
+        auto model =rendererWidget->GetScene()->GetCurrentModel();
+        if (model == nullptr) {
+            showDarkFramelessMessage(QStringLiteral("Warning"),QStringLiteral("当前没有打开模型。"));
+            return;
+        }
+        auto data = model->GetDataObject();
+        if (data == nullptr) {
+            showDarkFramelessMessage(QStringLiteral("Warning"),QStringLiteral("当前模型没有数据。"));
+            return;
+        }
+
+        igQtFilterDialogDockWidget* dialog =new igQtFilterDialogDockWidget(this, true);
+        dialog->setFilterTitle(QStringLiteral("MeshQuality - 网格质量评估"));
+
+        // 三角形
+        std::vector<QString> triangleMetrics = {
+            QStringLiteral("FACE_AREA"),
+            QStringLiteral("MAX_ANGLE"),
+            QStringLiteral("MIN_ANGLE"),
+            QStringLiteral("JACOBIAN"),
+            QStringLiteral("ASPECT_RATIO"),
+            QStringLiteral("EDGE_RATIO"),
+            QStringLiteral("ANGLE_QUALITY"),
+            QStringLiteral("FACE_MIN_ANGLE"),
+            QStringLiteral("FACE_MAX_ANGLE"),
+            QStringLiteral("FACE_MIN_ANGLE_QUALITY")
+        };
+        int triangleId =
+            dialog->addParameter(igQtFilterDialogDockWidget::QT_COMBO_BOX,QStringLiteral("Triangle 质量指标"),triangleMetrics);
+
+        // 四边形
+        std::vector<QString> quadMetrics = {
+            QStringLiteral("FACE_AREA"),
+            QStringLiteral("MAX_ANGLE"),
+            QStringLiteral("MIN_ANGLE"),
+            QStringLiteral("JACOBIAN"),
+            QStringLiteral("ASPECT_RATIO"),
+            QStringLiteral("EDGE_RATIO"),
+            QStringLiteral("WARPAGE"),
+            QStringLiteral("TAPER"),
+            QStringLiteral("SKEW"),
+            QStringLiteral("ANGLE_QUALITY"),
+            QStringLiteral("FACE_MIN_ANGLE"),
+            QStringLiteral("FACE_MAX_ANGLE"),
+            QStringLiteral("FACE_MIN_ANGLE_QUALITY")
+        };
+        int quadId =
+            dialog->addParameter(igQtFilterDialogDockWidget::QT_COMBO_BOX,QStringLiteral("Quad 质量指标"),quadMetrics);
+
+        // 四面体
+        std::vector<QString> tetMetrics = {
+            QStringLiteral("TET_EDGE_RATIO"),
+            QStringLiteral("TET_VOLUME"),
+            QStringLiteral("TET_ASPECT_RATIO"),
+            QStringLiteral("TET_JACOBIAN"),
+            QStringLiteral("TET_COLLAPSE_RATIO"),
+            QStringLiteral("TET_VOL_SKEW"),
+            QStringLiteral("TET_MIN_ANGLE"),
+            QStringLiteral("TET_EQUIANGLE_SKEWNESS"),
+            QStringLiteral("TET_INRADIUS"),
+            QStringLiteral("TET_CIRCUMRADIUS"),
+            QStringLiteral("TET_VOL_ASPECT_RATIO"),
+            QStringLiteral("TET_ASPECT_RATIO_ALT"),
+            QStringLiteral("TET_VOLUME_ALT")
+        };
+        int tetId =dialog->addParameter(igQtFilterDialogDockWidget::QT_COMBO_BOX,QStringLiteral("Tetra 质量指标"),tetMetrics);
+
+        // 六面体
+        std::vector<QString> hexMetrics = {
+            QStringLiteral("HEX_VOLUME"),
+            QStringLiteral("HEX_TAPER"),
+            QStringLiteral("HEX_JACOBIAN"),
+            QStringLiteral("HEX_EDGE_RATIO"),
+            QStringLiteral("HEX_MAX_EDGE_RATIO"),
+            QStringLiteral("HEX_SKEW"),
+            QStringLiteral("HEX_STRETCH"),
+            QStringLiteral("HEX_DIAGONAL"),
+            QStringLiteral("HEX_RELATIVE_SIZE_SQUARED"),
+            QStringLiteral("HEX_MIN_SCALED_JACOBIAN"),
+            QStringLiteral("HEX_AVG_SCALED_JACOBIAN"),
+            QStringLiteral("HEX_VOLUME_ALT")
+        };
+        int hexId =dialog->addParameter(igQtFilterDialogDockWidget::QT_COMBO_BOX,QStringLiteral("Hexahedron 质量指标"),hexMetrics);
+
+        dialog->show();
+
+        dialog->setApplyFunctor([=, this]() {
+            bool ok = true;
+            int triangleIndex =dialog->getComboIndex(triangleId, ok);
+            if (!ok) {
+                showDarkFramelessMessage(QStringLiteral("参数错误"),QStringLiteral("Triangle 质量指标获取失败。"));
+                return;
+            }
+            int quadIndex =dialog->getComboIndex(quadId, ok);
+            if (!ok) {
+                showDarkFramelessMessage(QStringLiteral("参数错误"),QStringLiteral("Quad 质量指标获取失败。"));
+                return;
+            }
+            int tetIndex =dialog->getComboIndex(tetId, ok);
+            if (!ok) {
+                showDarkFramelessMessage(QStringLiteral("参数错误"),QStringLiteral("Tetra 质量指标获取失败。"));
+                return;
+            }
+            int hexIndex =dialog->getComboIndex(hexId, ok);
+            if (!ok) {
+                showDarkFramelessMessage(QStringLiteral("参数错误"),QStringLiteral("Hexahedron 质量指标获取失败。"));
+                return;
+            }
+
+            MeshQualityFilter::Pointer filter =MeshQualityFilter::New();
+            filter->SetInput(data);
+            using SurfaceMetric =SurfaceMeshMetricsFilter::SurfaceMetric;
+            using VolumeMetric =VolumeMeshMetricsFilter::VolumeMetric;
+            filter->SetTriangleMetric(static_cast<SurfaceMetric>(triangleIndex));
+            filter->SetQuadMetric(static_cast<SurfaceMetric>(quadIndex));
+            filter->SetTetMetric(static_cast<VolumeMetric>(tetIndex));
+            filter->SetHexMetric(static_cast<VolumeMetric>(hexIndex));
+
+            if (!filter->Execute()) {
+                showDarkFramelessMessage(QStringLiteral("Warning"),QString::fromStdString("MeshQuality执行失败"));
+                return;
+            }
+            double minQuality = filter->GetMinimum();
+            double maxQuality = filter->GetMaximum();
+            QString qualityText =QString("Quality: [%1, %2]").arg(minQuality, 0, 'g', 15).arg(maxQuality, 0, 'g', 15);
+            showDarkFramelessMessage(QStringLiteral("Mesh Quality"),qualityText);
+
+            modelTreeWidget->updateAllAttriubute(data);
+            auto drawObject =DynamicCast<DrawObject>(data);
+            if (drawObject) {
+                auto item =modelTreeWidget->getItemFromObject(data);
+                if (item && item->childCount() > 0) {
+                    item->setExpanded(true)
+                    int index =data->GetAttributeIndex();
+                    auto child =item->child(index);
+                    if (child) {
+                        item->setCurrentChild(child);
+                        item->setSelected(false);
+                        item->viewAttribute(index, -1);
+                        child->setSelected(true);
+                        modelTreeWidget->setCurrentItem(child);
+                    }
+                }
+            }
+
+            rendererWidget->update();
+        });
+    });
 
     QMenu* view = ui->menu_filters->addMenu("特征提取");
 
