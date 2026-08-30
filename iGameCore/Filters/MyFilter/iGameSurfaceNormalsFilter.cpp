@@ -5,6 +5,7 @@
 #include "iGameFlatArray.h"
 
 #include <cmath>
+#include <cstring>
 #include <queue>
 #include <unordered_map>
 #include <vector>
@@ -25,6 +26,79 @@ Vector3f ComputeFaceNormalNewell(SurfaceMesh* mesh, const igIndex* ptIds, int np
         nz += static_cast<double>(a[0] - b[0]) * static_cast<double>(a[1] + b[1]);
     }
     return Vector3f(static_cast<float>(nx), static_cast<float>(ny), static_cast<float>(nz));
+}
+
+// ============================================================
+// 复制输入网格的全部单元属性到输出（面数不变，直接逐元组拷贝）
+// 参考 iGameTensorFilter 的标准属性复制写法
+// ============================================================
+void CopyCellAttributes(AttributeSet* src, AttributeSet* dst, int nFaces) {
+    if (src == nullptr || dst == nullptr) return;
+    auto cellAttrs = src->GetAllCellAttributes();
+    if (cellAttrs == nullptr) return;
+
+    for (int i = 0; i < cellAttrs->GetNumberOfElements(); ++i) {
+        AttributeSet::Attribute& inAttr = cellAttrs->GetElement(i);
+        if (inAttr.IsDeleted()) continue;
+
+        ArrayObject::Pointer inData = inAttr.GetPointer();
+        if (inData == nullptr) continue;
+
+        const std::string& name = inData->GetName();
+        // 跳过法向相关属性，本 filter 会重新计算
+        if (name == "Normals" || name == "Normals_Magnitude") continue;
+
+        int dim = inData->GetDimension();
+        DoubleArray::Pointer newData = DoubleArray::New();
+        newData->SetName(name);
+        newData->SetDimension(dim);
+        newData->Resize(nFaces);
+
+        double tmp[64];
+        for (int j = 0; j < nFaces; ++j) {
+            inData->GetElement(j, tmp);
+            newData->SetElement(j, tmp);
+        }
+
+        dst->AddAttribute(inAttr.GetType(), IG_CELL, newData, inAttr.GetDataRange());
+    }
+}
+
+// ============================================================
+// 复制输入网格的全部点属性到输出
+// 顶点分裂后点数变为 newPtCount，每个新点对应 newPtOrigId[j] 号原始点
+// ============================================================
+void CopyPointAttributes(AttributeSet* src, AttributeSet* dst,
+                         const std::vector<int>& newPtOrigId, int newPtCount) {
+    if (src == nullptr || dst == nullptr) return;
+    auto pointAttrs = src->GetAllPointAttributes();
+    if (pointAttrs == nullptr) return;
+
+    for (int i = 0; i < pointAttrs->GetNumberOfElements(); ++i) {
+        AttributeSet::Attribute& inAttr = pointAttrs->GetElement(i);
+        if (inAttr.IsDeleted()) continue;
+
+        ArrayObject::Pointer inData = inAttr.GetPointer();
+        if (inData == nullptr) continue;
+
+        const std::string& name = inData->GetName();
+        if (name == "Normals" || name == "Normals_Magnitude") continue;
+
+        int dim = inData->GetDimension();
+        DoubleArray::Pointer newData = DoubleArray::New();
+        newData->SetName(name);
+        newData->SetDimension(dim);
+        newData->Resize(newPtCount);
+
+        double tmp[64];
+        for (int j = 0; j < newPtCount; ++j) {
+            int orig = newPtOrigId[j];
+            inData->GetElement(orig, tmp);
+            newData->SetElement(j, tmp);
+        }
+
+        dst->AddAttribute(inAttr.GetType(), IG_POINT, newData, inAttr.GetDataRange());
+    }
 }
 
 } // anonymous namespace
@@ -158,7 +232,7 @@ bool SurfaceNormalsFilter::Execute() {
     CellArray::Pointer newFaces = CellArray::New();
     for (int faceId = 0; faceId < nFaces; ++faceId) {
         newFaces->AddCellIds(faceNewPtIds[faceId].data(),
-                            static_cast<int>(faceNewPtIds[faceId].size()));
+                             static_cast<int>(faceNewPtIds[faceId].size()));
     }
 
     // -------------------------------------------------------------------
@@ -175,7 +249,7 @@ bool SurfaceNormalsFilter::Execute() {
     }
 
     // -------------------------------------------------------------------
-    // 7. 组装新 SurfaceMesh 并添加属性
+    // 7. 组装新 SurfaceMesh
     // -------------------------------------------------------------------
     SurfaceMesh::Pointer newMesh = SurfaceMesh::New();
     newMesh->SetName(mesh->GetName() + "_normals");
@@ -183,8 +257,18 @@ bool SurfaceNormalsFilter::Execute() {
     newMesh->SetFaces(newFaces);
 
     auto newAttrs = newMesh->GetAttributeSet();
+    auto srcAttrs = mesh->GetAttributeSet();
 
-    // 删除同名旧属性（如果有）
+    // ============================================================
+    // ★ 修复：先复制输入网格的全部原始属性（PointData + CellData）
+    //    解决"输出未复制任何 AttributeSet，所有 PointData 和 CellData 丢失"
+    // ============================================================
+    // 单元属性：面数不变，直接逐元组拷贝
+    CopyCellAttributes(srcAttrs, newAttrs, nFaces);
+    // 点属性：顶点分裂后按 newPtOrigId 映射，每个新点取对应原始点的属性值
+    CopyPointAttributes(srcAttrs, newAttrs, newPtOrigId, newPtCount);
+
+    // 删除同名旧属性（兜底：如果输入本身带 Normals，上面复制时已跳过，这里清理残留）
     while (true) {
         int idx = newAttrs->GetAttributeIndex("Normals");
         if (idx < 0) break;
@@ -196,7 +280,9 @@ bool SurfaceNormalsFilter::Execute() {
         newAttrs->DeleteAttribute(idx);
     }
 
-    // 面法向量（三分量）+ 模长
+    // -------------------------------------------------------------------
+    // 8. 面法向量（三分量）+ 模长
+    // -------------------------------------------------------------------
     FloatArray::Pointer cellNormals = FloatArray::New();
     cellNormals->SetDimension(3);
     cellNormals->Reserve(nFaces);
@@ -215,7 +301,9 @@ bool SurfaceNormalsFilter::Execute() {
     newAttrs->AddAttribute(IG_NORMAL, IG_CELL, cellNormals);
     newAttrs->AddAttribute(IG_SCALAR, IG_CELL, cellMag);
 
-    // 点法向量（三分量）+ 模长
+    // -------------------------------------------------------------------
+    // 9. 点法向量（三分量）+ 模长
+    // -------------------------------------------------------------------
     FloatArray::Pointer pointNormalsArr = FloatArray::New();
     pointNormalsArr->SetDimension(3);
     pointNormalsArr->Reserve(newPtCount);
