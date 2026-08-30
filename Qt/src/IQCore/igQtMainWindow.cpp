@@ -20,17 +20,20 @@
 #include "Convert/iGameConvertPolyhedralCellsFilter.h"
 #include "Convert/iGameConvertToCellDataFilter.h"
 #include "Convert/iGameConvertToLagrangeUnstructuredMeshFilter.h"
-#include "Convert/iGameConvertToPointCloudFilter.h"
-#include "Convert/iGameConvertToPointDataFilter.h"
-#include "Convert/iGameConvertToSurfaceMeshFilter.h"
-#include "Convert/iGameConvertToVolumeMeshFilter.h"
-
-#include "Interactor/iGameInteractor.h"
+  #include "Convert/iGameConvertToPointCloudFilter.h"
+  #include "Convert/iGameConvertToPointDataFilter.h"
+  #include "Convert/iGameConvertToSurfaceMeshFilter.h"
+  #include "Convert/iGameConvertToVolumeMeshFilter.h"
+  
+  #include "MyFilter/iGameCellCenterFilter.h"
+  
+  #include "Interactor/iGameInteractor.h"
 
 #include "Tests/iGameARAPTest.h"
 
 #include "iGameFileIO.h"
 #include "iGameFilterIncludes.h"
+#include "GhostCell/iGameGhostCellFilter.h"
 #include <IQComponents/igQtFilterDialogDockWidget.h>
 #include <IQComponents/igQtModelDialogWidget.h>
 #include <IQComponents/igQtProgressBarWidget.h>
@@ -1205,42 +1208,6 @@ void igQtMainWindow::initAllFilters() {
         }
     };
 
-      connect(ui->menu_filters->addAction(QStringLiteral("单元几何校验 (Validate Cells)")), &QAction::triggered, this,
-            [&](bool checked) {
-                auto* scene = rendererWidget->GetScene();
-                if (scene == nullptr || scene->GetCurrentModel() == nullptr) {
-                    showDarkFramelessMessage(QStringLiteral("无可用模型"),
-                                             QStringLiteral("请先加载并选择一个网格模型。"));
-                    return;
-                }
-                auto model = scene->GetCurrentModel();
-                auto obj = model->GetDataObject();
-                if (obj == nullptr) {
-                    showDarkFramelessMessage(QStringLiteral("无可用数据"),
-                                             QStringLiteral("当前模型没有可用的网格数据。"));
-                    return;
-                }
-                ValidateCellsFilter::Pointer filter = ValidateCellsFilter::New();
-                filter->SetInput(obj);
-                filter->SetModel(model);
-                if (!filter->Execute()) {
-                    showDarkFramelessMessage(QStringLiteral("校验失败"),
-                                             QStringLiteral("该数据类型不支持单元几何校验。"));
-                    return;
-                }
-                const auto& invalidIds = filter->GetInvalidCellIds();
-                if (invalidIds.empty()) {
-                    showDarkFramelessMessage(QStringLiteral("校验通过"),
-                                             QStringLiteral("未发现无效单元，当前网格几何体有效。"), true);
-                    return;
-                }
-                modelTreeWidget->addDataObjectToModelTree(obj, Algorithm);
-                rendererWidget->update();
-                showDarkFramelessMessage(QStringLiteral("单元几何校验"),
-                                         QString(QStringLiteral("发现 %1 个无效单元，已高亮显示。"))
-                                                 .arg(static_cast<int>(invalidIds.size())),
-                                         false);
-            });
 
       connect(ui->menu_filters->addAction(QStringLiteral("面/点法向量计算 (Surface Normals)")), &QAction::triggered, this,
             [&](bool checked) {
@@ -1275,6 +1242,35 @@ void igQtMainWindow::initAllFilters() {
             
 
     QMenu* mesh_processing = ui->menu_filters->addMenu(QStringLiteral("数据处理 (Data Processing)"));
+    QAction* ghostCellAction = ui->menu_filters->addAction(QStringLiteral("Ghost 单元标记 (Ghost Cells)"));
+    connect(ghostCellAction, &QAction::triggered, this, [this](bool checked) {
+        if (rendererWidget->GetScene()->GetCurrentModel() == nullptr) return;
+        iGame::GhostCellFilter::Pointer filter = iGame::GhostCellFilter::New();
+        auto data = rendererWidget->GetScene()->GetCurrentModel()->GetDataObject();
+        filter->SetInput(data);
+        if (filter->Execute()) {
+            modelTreeWidget->updateAllAttriubute(data);
+            int index = data->GetAttributeSet()->GetAttributeIndex("GhostCells");
+            auto drawObject = iGame::DynamicCast<iGame::DrawObject>(data);
+            if (drawObject && index >= 0) {
+                auto item = modelTreeWidget->getItemFromObject(data);
+                if (item && item->childCount() > 0) {
+                    item->setExpanded(true);
+                    auto child = item->child(index);
+                    if (child) {
+                        item->setCurrentChild(child);
+                        item->setSelected(false);
+                        item->viewAttribute(index, -1);
+                        child->setSelected(true);
+                        modelTreeWidget->setCurrentItem(child);
+                    }
+                }
+            }
+        } else {
+            showDarkFramelessMessage(QStringLiteral("Warning"), QStringLiteral("GhostCellFilter 执行失败"));
+        }
+    });
+
     connect(mesh_processing->addAction(QStringLiteral("表面网格简化 (Surface Simplification)")), &QAction::triggered, this, [&](bool checked) {
         if (rendererWidget->GetScene()->GetCurrentModel() == nullptr) return;
 
@@ -1706,6 +1702,23 @@ void igQtMainWindow::initAllFilters() {
     //        std::cout << end - start << std::endl;
 
     //    });
+    connect(ui->menu_filters->addAction(QStringLiteral("单元几何中心 (Cell Center)")), &QAction::triggered,
+            this, [this](bool) {
+        auto currentModel = rendererWidget->GetScene()->GetCurrentModel();
+        if (!currentModel) return;
+
+        auto obj = currentModel->GetDataObject();
+        CellCenterFilter::Pointer filter = CellCenterFilter::New();
+        filter->SetInput(obj);
+        if (!filter->Execute()) {
+            showDarkFramelessMessage(QStringLiteral("执行失败"),
+                                     QStringLiteral("当前模型没有单元/顶点数据，或执行出错"));
+            return;
+        }
+
+        modelTreeWidget->addDataObjectToModelTree(filter->GetOutput(), Algorithm);
+        rendererWidget->update();
+    });
     QMenu* convert = ui->menu_filters->addMenu(QStringLiteral("数据转换 (Convert)"));
     connect(convert->addAction(QStringLiteral("转换为点数据 (Convert To PointData)")), &QAction::triggered, this, [&](bool checked) {
         if (rendererWidget->GetScene()->GetCurrentModel() == nullptr) return;
@@ -2041,6 +2054,7 @@ void igQtMainWindow::initAllFilters() {
             modelTreeWidget->addDataObjectToModelTree(res, Algorithm);
         }
     });
+
 }
 
 void igQtMainWindow::initAllDockWidgetConnectWithAction() {
