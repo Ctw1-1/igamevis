@@ -2043,7 +2043,7 @@ void igQtMainWindow::initAllFilters() {
             if (drawObject) {
                 auto item =modelTreeWidget->getItemFromObject(data);
                 if (item && item->childCount() > 0) {
-                    item->setExpanded(true)
+                    item->setExpanded(true);
                     int index =data->GetAttributeIndex();
                     auto child =item->child(index);
                     if (child) {
