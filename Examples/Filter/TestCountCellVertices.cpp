@@ -50,7 +50,7 @@ int main() {
         return 1;
     }
 
-    const iGame::IGsize n = mesh->GetNumberOfCells();
+    const IGsize n = mesh->GetNumberOfCells();
     if (counts->GetNumberOfValues() != n) {
         std::cerr << "[testCountCellVertices] FAIL: array length " << counts->GetNumberOfValues()
                   << " != cells " << n << "\n" << std::flush;
@@ -58,9 +58,11 @@ int main() {
     }
 
     bool ok = true;
-    for (iGame::IGsize i = 0; i < n; ++i) {
-        iGame::IGsize expected = static_cast<iGame::IGsize>(mesh->GetCellSize(i));
-        iGame::IGsize actual = static_cast<iGame::IGsize>(counts->GetValue(i));
+    for (IGsize i = 0; i < n; ++i) {
+        IGsize expected = static_cast<IGsize>(mesh->GetCells()->GetCellSize(i));
+        const igIndex* pointIds = nullptr;
+        const IGsize expected = static_cast<IGsize>(mesh->GetCellPointIds(i, pointIds));
+        IGsize actual = static_cast<IGsize>(counts->GetValue(i));
         if (expected != actual) {
             std::cerr << "[testCountCellVertices] FAIL: cell " << i << " expected " << expected
                       << " got " << actual << "\n" << std::flush;

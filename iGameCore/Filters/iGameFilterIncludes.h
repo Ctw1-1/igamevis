@@ -1,3 +1,4 @@
+#include "Attribute/iGameExtractComponentFilter.h"
 #include "AttributeManipulation/iGameRandomVectorsFilter.h"
 #include "PointCoordinates/iGamePointCoordinatesFilter.h"
 #include "Clip/iGameClipFilter.h"
@@ -7,6 +8,9 @@
 #include "Convert/iGameConvertToSurfaceMeshFilter.h"
 #include "Convert/iGameConvertToVolumeMeshFilter.h"
 #include "Convert/iGameConvertToVertexFilter.h"
+
+#include "RemoveGhostInformation/iGameRemoveGhostInformationFilter.h"
+
 #include "CountCellVertices/iGameCountCellVerticesFilter.h"
 #include "ExportEdges/iGameExportEdgesFilter.h"
 #include "ExtractEdges/iGameExtractEdgesFilter.h"
@@ -46,6 +50,7 @@
 #include "FeatureExtraction/iGameOutlineCornerFilter.h"
 #include "FeatureExtraction/iGameVortexDetectionFilter.h"
 #include "FeatureExtraction/iGameVortexFilter.h"
+#include "ExtractSubset/iGameExtractSubsetFilter.h"
 #include "VolumeOfRevolution/iGameVolumeOfRevolutionFilter.h"
 #include "Elevation/iGameElevationFilter.h"
 #include "FeatureExtraction/iGameFeatureEdgeRegionFilter.h"
