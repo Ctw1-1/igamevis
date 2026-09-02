@@ -276,6 +276,8 @@ igame_add_example(testCellCenterFilter Filter/MyFilter/TestCellCenterFilter.cpp)
 # IO (optional modules)
 igame_add_example(testSplineReaderCPU IO/SplineReaderCPU.cpp)
 
+# MeshQuality
+igame_add_example(testMeshQuality Filter/MeshQuality/TestMeshQuality.cpp)
 #Data Processing
 igame_add_example(testVolumeMeshSimplification Filter/TestVolumeMeshSimplification.cpp)
 
