@@ -2912,6 +2912,19 @@ void igQtMainWindow::initAllFilters() {
             return;
         }
 
+    // 转换为顶点单元：直接作为「算法处理」一级菜单项，点击即调用 ConvertToVertexFilter。
+    connect(ui->menu_filters->addAction(QStringLiteral("转换为顶点单元 (Convert To Vertex)")), &QAction::triggered, this, [&](bool checked) {
+        if (rendererWidget->GetScene()->GetCurrentModel() == nullptr) return;
+        auto obj = rendererWidget->GetScene()->GetCurrentModel()->GetDataObject();
+        if (!obj) return;
+        ConvertToVertexFilter::Pointer filter = ConvertToVertexFilter::New();
+        filter->SetInput(obj);
+        if (filter->Execute()) {
+            modelTreeWidget->addDataObjectToModelTree(filter->GetOutput(), Algorithm);
+            rendererWidget->update();
+        }
+    });
+
         auto input = scene->GetCurrentModel()->GetDataObject();
         if (input.IsNull()) {
             igDebug("[CountCellFaces UI] Current model has no data object; Execute was not called.");
