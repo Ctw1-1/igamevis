@@ -356,10 +356,6 @@ igame_add_example(
     Filter/FeatureExtraction/FeatureEdgesVisualization.cpp
 )
 
-igame_add_example(TestValidateCellsFilter Filter/MyFilter/TestValidateCellsFilter.cpp)
-
-
-
 if (ENABLE_LIBTORCH_MODULE)
     igame_add_example(testVortexDetection Filter/FeatureExtraction/VortexDetection.cpp)
     target_compile_definitions(testVortexDetection PUBLIC LibTorch_ENABLE)
