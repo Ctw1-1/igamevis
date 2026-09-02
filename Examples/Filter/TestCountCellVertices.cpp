@@ -59,6 +59,7 @@ int main() {
 
     bool ok = true;
     for (IGsize i = 0; i < n; ++i) {
+        IGsize expected = static_cast<IGsize>(mesh->GetCells()->GetCellSize(i));
         const igIndex* pointIds = nullptr;
         const IGsize expected = static_cast<IGsize>(mesh->GetCellPointIds(i, pointIds));
         IGsize actual = static_cast<IGsize>(counts->GetValue(i));

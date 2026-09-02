@@ -834,6 +834,7 @@ void igQtMainWindow::initAllUnDefinedComponents() {
     this->addDockWidget(Qt::BottomDockWidgetArea, ui->dockWidget_Animation);
     this->addDockWidget(Qt::LeftDockWidgetArea, ui->dockWidget_ModelList);
     this->addDockWidget(Qt::LeftDockWidgetArea, ui->dockWidget_ContourExtract);
+    this->addDockWidget(Qt::LeftDockWidgetArea, ui->dockWidget_ExtractComponent);
     this->addDockWidget(Qt::LeftDockWidgetArea, ui->dockWidget_GenerateProcessIds);
     this->addDockWidget(Qt::LeftDockWidgetArea, ui->dockWidget_ExtractEdges);
     this->addDockWidget(Qt::LeftDockWidgetArea, ui->dockWidget_CountCellVertices);
@@ -857,6 +858,7 @@ void igQtMainWindow::initAllUnDefinedComponents() {
     ui->dockWidget_Animation->setFeatures(QDockWidget::DockWidgetClosable);
     ui->dockWidget_ModelList->setFeatures(QDockWidget::DockWidgetClosable);
     ui->dockWidget_ContourExtract->setFeatures(QDockWidget::DockWidgetClosable);
+    ui->dockWidget_ExtractComponent->setFeatures(QDockWidget::DockWidgetClosable);
     ui->dockWidget_ExtractEdges->setFeatures(QDockWidget::DockWidgetClosable);
     ui->dockWidget_CountCellVertices->setFeatures(QDockWidget::DockWidgetClosable);
 
@@ -879,6 +881,7 @@ void igQtMainWindow::initAllUnDefinedComponents() {
     ui->dockWidget_Animation->hide();
     ui->dockWidget_ModelList->hide();
     ui->dockWidget_ContourExtract->hide();
+    ui->dockWidget_ExtractComponent->hide();
     ui->dockWidget_GenerateProcessIds->hide();
     ui->dockWidget_ExtractEdges->hide();
     ui->dockWidget_CountCellVertices->hide();
@@ -2937,6 +2940,31 @@ void igQtMainWindow::initAllFilters() {
         rendererWidget->update();
     });
 
+    // 提取分量 (Extract Component)：从多分量数组（向量/张量）提取单个分量生成标量属性，
+    // 打开左侧工具面板（继承语义：首次执行新增模型树节点，再次执行更新结果节点）
+    QAction* extractComponent = ui->menu_filters->addAction(QStringLiteral("提取分量 (Extract Component)"));
+    connect(extractComponent, &QAction::triggered, this, [this](bool checked) {
+        if (rendererWidget->GetScene()->GetCurrentModel() == nullptr) return;
+        auto data = rendererWidget->GetScene()->GetCurrentModel()->GetDataObject();
+        if (data == nullptr) return;
+        openLeftToolPanel(LeftToolPanelId::ExtractComponent);
+        ui->widget_ExtractComponent->SetOriginDataObject(data);
+    });
+
+    connect(ui->widget_ExtractComponent, &igQtExtractComponentWidget::DrawExtractComponentModel, this,
+            [this](iGame::DataObject::Pointer res) {
+                modelTreeWidget->addDataObjectToModelTree(res, ItemSource::Algorithm);
+            });
+    connect(ui->widget_ExtractComponent, &igQtExtractComponentWidget::UpdateExtractComponentModel, this,
+            [this](iGame::DataObject::Pointer res) {
+                modelTreeWidget->updateCurrentModelInfo();
+                rendererWidget->update();
+            });
+    connect(ui->widget_ExtractComponent, &igQtExtractComponentWidget::ApplyFailed, this,
+            [this](const QString& message) {
+                showDarkFramelessMessage(QStringLiteral("Warning"), message);
+            });
+
     QAction* gradient = view->addAction(QStringLiteral("计算梯度 (ComputeGradient)"));
     connect(gradient, &QAction::triggered, this, [this](bool checked) {
         if (rendererWidget->GetScene()->GetCurrentModel() == nullptr) return;
@@ -4716,6 +4744,7 @@ QDockWidget* igQtMainWindow::shellDockForLeftPanel(LeftToolPanelId id) const {
     case LeftToolPanelId::Selection: return ui->dockWidget_SelectionField;
     case LeftToolPanelId::VariableDensity: return ui->dockWidget_VariableDensityField;
     case LeftToolPanelId::DataChange: return ui->dockWidget_DataChangeField;
+    case LeftToolPanelId::ExtractComponent: return ui->dockWidget_ExtractComponent;
     case LeftToolPanelId::ExtractCellsByType: return m_extractCellsByTypeShell;
     case LeftToolPanelId::Count: return nullptr;
     }
@@ -4830,6 +4859,9 @@ void igQtMainWindow::openLeftToolPanel(LeftToolPanelId id) {
         relocateContentToLeftTab(ui->dockWidget_DataChangeField, ui->widget_DataChangeField, QStringLiteral("路径图"), id,
                                  false);
         break;
+    case LeftToolPanelId::ExtractComponent:
+        relocateContentToLeftTab(ui->dockWidget_ExtractComponent, ui->widget_ExtractComponent, QStringLiteral("提取分量"), id,
+                                 false);
     case LeftToolPanelId::ExtractCellsByType:
         relocateContentToLeftTab(m_extractCellsByTypeShell, m_extractCellsByTypeWidget,
                                  QStringLiteral("按单元类型提取"), id, false);

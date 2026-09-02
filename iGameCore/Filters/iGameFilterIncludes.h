@@ -1,3 +1,4 @@
+#include "Attribute/iGameExtractComponentFilter.h"
 #include "AttributeManipulation/iGameRandomVectorsFilter.h"
 #include "PointCoordinates/iGamePointCoordinatesFilter.h"
 #include "Clip/iGameClipFilter.h"
