@@ -1995,6 +1995,73 @@ void igQtMainWindow::initAllFilters() {
         };
         int hexId =dialog->addParameter(igQtFilterDialogDockWidget::QT_COMBO_BOX,QStringLiteral("Hexahedron 质量指标"),hexMetrics);
 
+        using SurfaceMetric = SurfaceMeshMetricsFilter::SurfaceMetric;
+        using VolumeMetric = VolumeMeshMetricsFilter::VolumeMetric;
+
+        // Triangle
+        std::vector<SurfaceMetric> triangleMetricValues = {
+            SurfaceMetric::FACE_AREA,
+            SurfaceMetric::MAX_ANGLE,
+            SurfaceMetric::MIN_ANGLE,
+            SurfaceMetric::JACOBIAN,
+            SurfaceMetric::ASPECT_RATIO,
+            SurfaceMetric::EDGE_RATIO,
+            SurfaceMetric::ANGLE_QUALITY,
+            SurfaceMetric::FACE_MIN_ANGLE,
+            SurfaceMetric::FACE_MAX_ANGLE,
+            SurfaceMetric::FACE_MIN_ANGLE_QUALITY
+        };
+
+        // Quad
+        std::vector<SurfaceMetric> quadMetricValues = {
+            SurfaceMetric::FACE_AREA,
+            SurfaceMetric::MAX_ANGLE,
+            SurfaceMetric::MIN_ANGLE,
+            SurfaceMetric::JACOBIAN,
+            SurfaceMetric::ASPECT_RATIO,
+            SurfaceMetric::EDGE_RATIO,
+            SurfaceMetric::WARPAGE,
+            SurfaceMetric::TAPER,
+            SurfaceMetric::SKEW,
+            SurfaceMetric::ANGLE_QUALITY,
+            SurfaceMetric::FACE_MIN_ANGLE,
+            SurfaceMetric::FACE_MAX_ANGLE,
+            SurfaceMetric::FACE_MIN_ANGLE_QUALITY
+        };
+
+        // Tet
+        std::vector<VolumeMetric> tetMetricValues = {
+            VolumeMetric::TET_EDGE_RATIO,
+            VolumeMetric::TET_VOLUME,
+            VolumeMetric::TET_ASPECT_RATIO,
+            VolumeMetric::TET_JACOBIAN,
+            VolumeMetric::TET_COLLAPSE_RATIO,
+            VolumeMetric::TET_VOL_SKEW,
+            VolumeMetric::TET_MIN_ANGLE,
+            VolumeMetric::TET_EQUIANGLE_SKEWNESS,
+            VolumeMetric::TET_INRADIUS,
+            VolumeMetric::TET_CIRCUMRADIUS,
+            VolumeMetric::TET_VOL_ASPECT_RATIO,
+            VolumeMetric::TET_ASPECT_RATIO_ALT,
+            VolumeMetric::TET_VOLUME_ALT
+        };
+
+        // Hex
+        std::vector<VolumeMetric> hexMetricValues = {
+            VolumeMetric::HEX_VOLUME,
+            VolumeMetric::HEX_TAPER,
+            VolumeMetric::HEX_JACOBIAN,
+            VolumeMetric::HEX_EDGE_RATIO,
+            VolumeMetric::HEX_MAX_EDGE_RATIO,
+            VolumeMetric::HEX_SKEW,
+            VolumeMetric::HEX_STRETCH,
+            VolumeMetric::HEX_DIAGONAL,
+            VolumeMetric::HEX_RELATIVE_SIZE_SQUARED,
+            VolumeMetric::HEX_MIN_SCALED_JACOBIAN,
+            VolumeMetric::HEX_AVG_SCALED_JACOBIAN,
+            VolumeMetric::HEX_VOLUME_ALT
+        };
+
         dialog->show();
 
         dialog->setApplyFunctor([=, this]() {
@@ -2022,12 +2089,10 @@ void igQtMainWindow::initAllFilters() {
 
             MeshQualityFilter::Pointer filter =MeshQualityFilter::New();
             filter->SetInput(data);
-            using SurfaceMetric =SurfaceMeshMetricsFilter::SurfaceMetric;
-            using VolumeMetric =VolumeMeshMetricsFilter::VolumeMetric;
-            filter->SetTriangleMetric(static_cast<SurfaceMetric>(triangleIndex));
-            filter->SetQuadMetric(static_cast<SurfaceMetric>(quadIndex));
-            filter->SetTetMetric(static_cast<VolumeMetric>(tetIndex));
-            filter->SetHexMetric(static_cast<VolumeMetric>(hexIndex));
+            filter->SetTriangleMetric(triangleMetricValues[triangleIndex]);
+            filter->SetQuadMetric(quadMetricValues[quadIndex]);
+            filter->SetTetMetric(tetMetricValues[tetIndex]);
+            filter->SetHexMetric(hexMetricValues[hexIndex]);
 
             if (!filter->Execute()) {
                 showDarkFramelessMessage(QStringLiteral("Warning"),QString::fromStdString("MeshQuality执行失败"));
