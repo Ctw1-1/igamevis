@@ -4862,6 +4862,7 @@ void igQtMainWindow::openLeftToolPanel(LeftToolPanelId id) {
     case LeftToolPanelId::ExtractComponent:
         relocateContentToLeftTab(ui->dockWidget_ExtractComponent, ui->widget_ExtractComponent, QStringLiteral("提取分量"), id,
                                  false);
+        break;
     case LeftToolPanelId::ExtractCellsByType:
         relocateContentToLeftTab(m_extractCellsByTypeShell, m_extractCellsByTypeWidget,
                                  QStringLiteral("按单元类型提取"), id, false);
