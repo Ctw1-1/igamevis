@@ -342,7 +342,7 @@ igame_add_example(testOutlineCorners Filter/FeatureExtraction/OutlineCorners.cpp
 igame_add_example(testCellSizeExtraction Filter/FeatureExtraction/CellSizeExtraction.cpp)
 
 igame_add_example(TestValidateCellsFilter Filter/MyFilter/TestValidateCellsFilter.cpp)
-
+igame_add_example(TestSurfaceNormalsFilter Filter/SurfaceNormals/TestSurfaceNormalsFilter.cpp)
 
 # Feature edges console test
 igame_add_example(
