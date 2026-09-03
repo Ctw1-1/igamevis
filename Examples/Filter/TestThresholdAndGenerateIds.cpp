@@ -107,9 +107,9 @@ iGame::DataObject::Pointer RunGenerateIds(iGame::DataObject::Pointer input, IGen
 } // namespace
 
 int main(int argc, char** argv) {
-    const std::string fileName =
-            argc > 1 ? argv[1]
-                     : R"(D:\test_model\test\Vector Field Test\VectorFieldTest_Fan_UnstructuredGrid.vtk)";
+    // 默认使用仓库内置测试数据(相对 Examples 运行目录的 ./Models/,由
+    // iGameCopyExampleAssets 自动拷贝);也可通过 argv[1] 传入任意数据集。
+    const std::string fileName = argc > 1 ? argv[1] : "./Models/ThresholdTestData.vtk";
 
     std::cout << "Reading: " << fileName << std::endl;
     auto input = iGame::FileIO::ReadFile(fileName);
