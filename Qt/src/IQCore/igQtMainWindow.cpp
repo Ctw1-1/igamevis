@@ -1835,6 +1835,38 @@ void igQtMainWindow::initAllFilters() {
                                          false);
             });
 
+      connect(ui->menu_filters->addAction(QStringLiteral("面/点法向量计算 (Surface Normals)")), &QAction::triggered, this,
+            [&](bool checked) {
+                auto* scene = rendererWidget->GetScene();
+                if (scene == nullptr || scene->GetCurrentModel() == nullptr) {
+                    showDarkFramelessMessage(QStringLiteral("无可用模型"),
+                                             QStringLiteral("请先加载并选择一个网格模型。"));
+                    return;
+                }
+                auto model = scene->GetCurrentModel();
+                auto obj = model->GetDataObject();
+                if (obj == nullptr) {
+                    showDarkFramelessMessage(QStringLiteral("无可用数据"),
+                                             QStringLiteral("当前模型没有可用的网格数据。"));
+                    return;
+                }
+                SurfaceNormalsFilter::Pointer filter = SurfaceNormalsFilter::New();
+                filter->SetInput(obj);
+                if (!filter->Execute()) {
+                    showDarkFramelessMessage(QStringLiteral("数据类型不匹配"),
+                                             QStringLiteral("面/点法向量计算仅支持多边形表面网格（Poly Data），请检查输入数据类型。"));
+                    return;
+                }
+                auto outMesh = DynamicCast<SurfaceMesh>(filter->GetOutput());
+                modelTreeWidget->addDataObjectToModelTree(outMesh, Algorithm);
+                rendererWidget->update();
+                showDarkFramelessMessage(QStringLiteral("面/点法向量计算完成"),
+                                         QStringLiteral("已为表面网格计算面法向量和点法向量，可在查找信息中查看 Normals 与 Normals_Magnitude。"),
+                                         true);
+            });
+
+            
+
             
 
     // 直接置于“算法处理”一级菜单；具体界面和交互由独立面板负责。
